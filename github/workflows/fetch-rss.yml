@@ -1,0 +1,50 @@
+name: 更新 Meteor 博客
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 每天0点抓取一次
+  workflow_dispatch:     # 支持手动触发
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout 仓库
+      uses: actions/checkout@v3
+
+    - name: 安装 Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: 抓取 RSS 并生成 JSON
+      run: |
+        npm install axios xml2js
+        node -e "
+          const fs = require('fs');
+          const axios = require('axios');
+          const xml2js = require('xml2js');
+
+          (async () => {
+            const url = 'https://paper.wf/meteor/feed/';
+            const res = await axios.get(url);
+            const xml = res.data;
+            const parser = new xml2js.Parser();
+            const result = await parser.parseStringPromise(xml);
+            const items = (result.rss.channel[0].item || []).map(it => ({
+              title: it.title[0],
+              link: it.link[0],
+              content: it.description ? it.description[0] : ''
+            }));
+            fs.writeFileSync('blog.json', JSON.stringify(items, null, 2));
+          })();
+        "
+
+    - name: 提交更新
+      run: |
+        git config user.name "github-actions"
+        git config user.email "actions@github.com"
+        git add blog.json
+        git commit -m "更新 Meteor 博客" || echo "没有变化"
+        git push
