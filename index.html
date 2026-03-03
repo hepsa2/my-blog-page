@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>博客页面</title>
+  <style>
+    body { font-family: sans-serif; background:#111; color:#eee; padding: 20px; }
+    .blog-item { margin-bottom: 20px; padding: 10px; border: 1px solid #333; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1> Meteor 博客</h1>
+  <div id="blog-list">加载中…</div>
+
+  <script>
+    async function loadRSS() {
+      const container = document.getElementById("blog-list");
+      try {
+        // 这里 Actions 会生成 blog.json 并提交到仓库
+        const res = await fetch("blog.json");
+        const items = await res.json();
+        container.innerHTML = "";
+        items.slice(0, 5).forEach(item => {
+          const div = document.createElement("div");
+          div.className = "blog-item";
+          div.innerHTML = `<h2><a href="${item.link}" target="_blank">${item.title}</a></h2>
+                           <div>${item.content}</div>`;
+          container.appendChild(div);
+        });
+      } catch(e) {
+        container.innerHTML = "加载失败：" + e.message;
+      }
+    }
+    loadRSS();
+  </script>
+</body>
+</html>
